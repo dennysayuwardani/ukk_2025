@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:ukk_2025/dashboard.dart';
+import 'package:ukk_2025/user_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -16,6 +16,7 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
   bool _isLoading = false;
+  
 
   final SupabaseClient supabase = Supabase.instance.client;
 
@@ -23,7 +24,7 @@ class _LoginPageState extends State<LoginPage> {
     if (!_formKey.currentState!.validate()) {
       return;
     }
-   
+
     setState(() {
       _isLoading = true;
     });
@@ -40,18 +41,24 @@ class _LoginPageState extends State<LoginPage> {
           .maybeSingle();
 
       if (response != null) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('username', response['username']);
+        if (response['password'] == password) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('username', response['username']);
 
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const UserPage()),
-        );
+          _showSnackBar('Login Berhasil', Colors.green);
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const UserPage()),
+          );
+        } else {
+          _showSnackBar('Username salah, coba lagi', Colors.red);
+        }
       } else {
-        _showSnackBar('Username atau password salah, harap isi dengan benar');
+        _showSnackBar('Password tidak ditemukan', Colors.red);
       }
     } catch (e) {
-      _showSnackBar('Terjadi kesalahan: $e');
+      _showSnackBar('Terjadi kesalahan: $e', Colors.red);
     } finally {
       setState(() {
         _isLoading = false;
@@ -59,9 +66,9 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  void _showSnackBar(String message) {
+  void _showSnackBar(String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+      SnackBar(content: Text(message), backgroundColor: color),
     );
   }
 
@@ -84,7 +91,6 @@ class _LoginPageState extends State<LoginPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                
                 const CircleAvatar(
                   radius: 55,
                   backgroundColor: Colors.blue,
@@ -92,7 +98,8 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 20),
                 Text("Selamat Datang", style: _textStyle(24, FontWeight.bold)),
-                Text("Silahkan Login", style: _textStyle(16, FontWeight.normal)),
+                Text("Silahkan Login",
+                    style: _textStyle(16, FontWeight.normal)),
                 const SizedBox(height: 45),
                 _buildTextField("Username", _usernameController),
                 const SizedBox(height: 10),
@@ -105,8 +112,8 @@ class _LoginPageState extends State<LoginPage> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15),
                     ),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 70, vertical: 15),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 70, vertical: 15),
                   ),
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
@@ -134,18 +141,16 @@ class _LoginPageState extends State<LoginPage> {
         TextFormField(
           controller: controller,
           decoration: InputDecoration(
-            hintText: label,
-            hintStyle: const TextStyle(fontSize: 14),
-            border: UnderlineInputBorder(
-            ),
-            labelText: label
-          ),
+              hintText: label,
+              hintStyle: const TextStyle(fontSize: 14),
+              border: UnderlineInputBorder(),
+              labelText: label),
           validator: (value) {
-            if (value == null || value.isEmpty) {
-              return '$label tidak boleh kosong';
-            }
-            return null;
-          },
+                    if (value!.isEmpty) return '$label tidak boleh kosong';
+                    return double.tryParse(value) != null
+                        ? 'Masukkan $label dengan benar'
+                        : null;
+                  },
         ),
       ],
     );
@@ -175,11 +180,11 @@ class _LoginPageState extends State<LoginPage> {
             ),
           ),
           validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Password tidak boleh kosong';
-            }
-            return null;
-          },
+                    if (value!.isEmpty) return 'Password tidak boleh kosong';
+                    return double.tryParse(value) == null
+                        ? 'Masukkan password dengan benar'
+                        : null;
+                  },
         ),
       ],
     );
