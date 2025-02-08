@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:ukk_2025/user_page.dart';
+import 'package:ukk_2025/main.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -14,13 +14,19 @@ class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  String? _usernameError;
+  String? _passwordError;
   bool _isPasswordVisible = false;
   bool _isLoading = false;
-  
 
   final SupabaseClient supabase = Supabase.instance.client;
 
   Future<void> _login() async {
+    setState(() {
+      _usernameError = null;
+      _passwordError = null;
+    });
+
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -37,39 +43,41 @@ class _LoginPageState extends State<LoginPage> {
           .from('user')
           .select()
           .eq('username', username)
-          .eq('password', password)
           .maybeSingle();
 
-      if (response != null) {
-        if (response['password'] == password) {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('username', response['username']);
-
-          _showSnackBar('Login Berhasil', Colors.green);
-
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const UserPage()),
-          );
-        } else {
-          _showSnackBar('Username salah, coba lagi', Colors.red);
-        }
+      if (response == null) {
+        setState(() {
+          _usernameError = "Username tidak terdaftar";
+        });
+      } else if (response['password'] != password) {
+        setState(() {
+          _passwordError = "Password salah, coba lagi";
+        });
       } else {
-        _showSnackBar('Password tidak ditemukan', Colors.red);
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('username', response['username']);
+
+        //Menampilkan Snackbar untuk info sukses login
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Login berhasil'),
+          backgroundColor: Colors.green,
+        ));
+
+        //Setelah login diarahka ke mainpage
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const MainPage()),
+        );
       }
     } catch (e) {
-      _showSnackBar('Terjadi kesalahan: $e', Colors.red);
+      setState(() {
+        _usernameError = "Terjadi kesalahan, coba lagi nanti";
+      });
     } finally {
       setState(() {
         _isLoading = false;
       });
     }
-  }
-
-  void _showSnackBar(String message, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: color),
-    );
   }
 
   @override
@@ -101,7 +109,8 @@ class _LoginPageState extends State<LoginPage> {
                 Text("Silahkan Login",
                     style: _textStyle(16, FontWeight.normal)),
                 const SizedBox(height: 45),
-                _buildTextField("Username", _usernameController),
+                _buildTextField(
+                    "Username", _usernameController, _usernameError),
                 const SizedBox(height: 10),
                 _buildPasswordField(),
                 const SizedBox(height: 50),
@@ -132,61 +141,45 @@ class _LoginPageState extends State<LoginPage> {
         fontSize: fontSize, fontWeight: fontWeight, color: Colors.blue);
   }
 
-  Widget _buildTextField(String label, TextEditingController controller) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Text(label, style: _textStyle(16, FontWeight.w500)),
-        const SizedBox(height: 5),
-        TextFormField(
-          controller: controller,
-          decoration: InputDecoration(
-              hintText: label,
-              hintStyle: const TextStyle(fontSize: 14),
-              border: UnderlineInputBorder(),
-              labelText: label),
-          validator: (value) {
-                    if (value!.isEmpty) return '$label tidak boleh kosong';
-                    return double.tryParse(value) != null
-                        ? 'Masukkan $label dengan benar'
-                        : null;
-                  },
-        ),
-      ],
+  Widget _buildTextField(
+      String label, TextEditingController controller, String? errorText) {
+    return TextFormField(
+      controller: controller,
+      decoration: InputDecoration(
+        hintText: label,
+        labelText: label,
+        errorText: errorText,
+        border: const UnderlineInputBorder(),
+      ),
+      validator: (value) {
+        if (value!.isEmpty) return '$label tidak boleh kosong';
+        return null;
+      },
     );
   }
 
   Widget _buildPasswordField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Text("Password", style: _textStyle(16, FontWeight.w500)),
-        const SizedBox(height: 5),
-        TextFormField(
-          controller: _passwordController,
-          obscureText: !_isPasswordVisible,
-          decoration: InputDecoration(
-            hintText: "Password",
-            labelText: 'Password',
-            hintStyle: const TextStyle(fontSize: 14),
-            border: UnderlineInputBorder(),
-            suffixIcon: IconButton(
-              icon: Icon(
-                _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                color: Colors.grey,
-              ),
-              onPressed: () =>
-                  setState(() => _isPasswordVisible = !_isPasswordVisible),
-            ),
+    return TextFormField(
+      controller: _passwordController,
+      obscureText: !_isPasswordVisible,
+      decoration: InputDecoration(
+        hintText: "Password",
+        labelText: 'Password',
+        errorText: _passwordError,
+        border: const UnderlineInputBorder(),
+        suffixIcon: IconButton(
+          icon: Icon(
+            _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+            color: Colors.grey,
           ),
-          validator: (value) {
-                    if (value!.isEmpty) return 'Password tidak boleh kosong';
-                    return double.tryParse(value) == null
-                        ? 'Masukkan password dengan benar'
-                        : null;
-                  },
+          onPressed: () =>
+              setState(() => _isPasswordVisible = !_isPasswordVisible),
         ),
-      ],
+      ),
+      validator: (value) {
+        if (value!.isEmpty) return 'Password tidak boleh kosong';
+        return null;
+      },
     );
   }
 }

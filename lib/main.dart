@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:ukk_2025/login_page.dart';
+import 'package:ukk_2025/pelanggan_page.dart';
+import 'package:ukk_2025/product_page.dart';
 import 'package:ukk_2025/user_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_fonts/google_fonts.dart';
+
 
 Future<void> main() async {
   await Supabase.initialize(
@@ -15,22 +20,32 @@ Future<void> main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
-  @override
+  Future<bool> _checkLoginStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('username') != null; // Cek apakah ada user yang login
+  }
+
+@override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Aplikasi Kasir',
       debugShowCheckedModeBanner: false,
-      home: FutureBuilder<String?>(
-        builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-        if (snapshot.hasData && snapshot.data != null) {
-          return const MainPage();
-        }
-        return const LoginPage();
-      }, future: null,),
+      home: Scaffold( // Tambahkan Scaffold agar tidak kosong
+        body: FutureBuilder<bool>(
+          future: _checkLoginStatus(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (snapshot.hasData && snapshot.data == true) {
+              return const MainPage(); // Jika sudah login, masuk ke halaman utama
+            } else {
+              return const LoginPage(); // Jika belum login, tampilkan halaman login
+            }
+          },
+        ),
+      ),
     );
   }
 }
@@ -43,28 +58,63 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
-  int _selectedIndex = 0;
+  int _currentIndex = 0;
 
-  //List halaman yang ssui dengan index
   final List<Widget> _pages = [
     const UserPage(),
+    const ProdukPage(),
+    const PelangganPage(),
   ];
+
+  void _onTap(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+  }
+
+  Future<void> _logout() async {
+    await Supabase.instance.client.auth.signOut();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+
+    setState(() {}); // Tambahkan ini untuk memperbarui UI setelah logout
+
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (context) => const LoginPage()),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final titles = ['CRUD User', 'CRUD Produk', 'CRUD Pelanggan'];
     return Scaffold(
-      body: _pages[
-          _selectedIndex], //kode utk menamplkan halaman sesuai dengan index
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: Text(titles[_currentIndex]),
+        titleTextStyle: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.bold),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.red),
+            onPressed: _logout,
+          ),
+        ],
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _pages,
+      ),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
+        currentIndex: _currentIndex,
         selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.white30,
-        items: [BottomNavigationBarItem(icon: Icon(Icons.person_2_outlined))],
+        unselectedItemColor: Colors.grey,
+        onTap: _onTap,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.person_2_outlined), label: 'User'),
+          BottomNavigationBarItem(icon: Icon(Icons.shopping_bag_outlined),label: 'Produk'),
+          BottomNavigationBarItem(icon: Icon(Icons.add_reaction_outlined), label: 'Pelanggan'),
+        ],
       ),
     );
   }

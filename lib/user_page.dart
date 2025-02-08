@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:google_fonts/google_fonts.dart';
-
 
 class UserPage extends StatefulWidget {
   const UserPage({Key? key}) : super(key: key);
@@ -26,21 +24,31 @@ class _UserPageState extends State<UserPage> {
 
   Future<void> _fetchUser() async {
     try {
-      final response = await supabase.from('user').select().order('username', ascending: true);
+      final response = await supabase
+          .from('user')
+          .select()
+          .order('username', ascending: true);
       if (mounted) {
         setState(() {
-        user = List<Map<String, dynamic>>.from(response);
-        isLoading = false;
-      });
+          user = List<Map<String, dynamic>>.from(response);
+          isLoading = false;
+        });
       }
     } catch (e) {
-      _showSnackBar('Terjadi kesalahan saat mengambil data user: $e', Colors.red);
+      _showSnackBar(
+          'Terjadi kesalahan saat mengambil data user: $e', Colors.red);
     }
   }
 
   Future<void> _addUser() async {
     final String username = _usernameController.text;
     final String password = _passwordController.text;
+
+    // Fungsi untuk menghentikan proses jika username sudah ada
+    if (await _isUsernameExists(username)) {
+      _showSnackBar('Username sudah digunakan!', Colors.red);
+      return; // Hentikan proses jika username sudah ada
+    }
 
     try {
       final response = await supabase.from('user').insert({
@@ -51,8 +59,8 @@ class _UserPageState extends State<UserPage> {
       if (response.isNotEmpty) {
         if (mounted) {
           setState(() {
-          user.add(response.first);
-        });
+            user.add(response.first);
+          });
         }
       }
       _showSnackBar('User berhasil ditambahkan', Colors.green);
@@ -67,6 +75,10 @@ class _UserPageState extends State<UserPage> {
     final String username = _usernameController.text;
     final String password = _passwordController.text;
 
+    if (await _isUsernameExists(username, excludeId: id)) {
+    _showSnackBar('Username sudah digunakan oleh user lain!', Colors.red);
+    return; // Hentikan proses jika username sudah ada
+  }
     try {
       final response = await supabase
           .from('user')
@@ -80,11 +92,11 @@ class _UserPageState extends State<UserPage> {
       if (response.isNotEmpty) {
         if (mounted) {
           setState(() {
-          final index = user.indexWhere((item) => item['id'] == id);
-          if (index != -1) {
-            user[index] = response.first;
-          }
-        });
+            final index = user.indexWhere((item) => item['id'] == id);
+            if (index != -1) {
+              user[index] = response.first;
+            }
+          });
         }
       }
       _showSnackBar('User berhasil diperbarui', Colors.green);
@@ -109,7 +121,8 @@ class _UserPageState extends State<UserPage> {
                 children: [
                   ElevatedButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                    style:
+                        ElevatedButton.styleFrom(backgroundColor: Colors.red),
                     child: const Text('Batal'),
                   ),
                   ElevatedButton(
@@ -118,8 +131,8 @@ class _UserPageState extends State<UserPage> {
                         await supabase.from('user').delete().eq('id', id);
                         if (mounted) {
                           setState(() {
-                          user.removeWhere((item) => item['id'] == id);
-                        });
+                            user.removeWhere((item) => item['id'] == id);
+                          });
                         }
                         _showSnackBar('User berhasil dihapus', Colors.green);
                       } catch (e) {
@@ -127,7 +140,8 @@ class _UserPageState extends State<UserPage> {
                       }
                       Navigator.of(context).pop();
                     },
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                    style:
+                        ElevatedButton.styleFrom(backgroundColor: Colors.green),
                     child: const Text('Hapus'),
                   ),
                 ],
@@ -139,8 +153,25 @@ class _UserPageState extends State<UserPage> {
     );
   }
 
+  Future<bool> _isUsernameExists(String username, {int? excludeId}) async {
+    final response = await supabase
+        .from('user')
+        .select()
+        .eq('username', username)
+        .maybeSingle(); // Ambil satu hasil saja jika ada
+
+    if (response == null)
+      return false; // Jika tidak ada data, berarti belum dipakai
+
+    // Jika sedang mengedit, pastikan ID yang sama tidak terhitung sebagai duplikat
+    if (excludeId != null && response['id'] == excludeId) return false;
+
+    return true; // Jika ditemukan, berarti username sudah ada
+  }
+
   void _showSnackBar(String message, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: color));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message), backgroundColor: color));
   }
 
   void _showUserDialog({Map<String, dynamic>? userData}) {
@@ -157,8 +188,10 @@ class _UserPageState extends State<UserPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _buildInputField(controller: _usernameController, label: 'Username'),
-                _buildInputField(controller: _passwordController, label: 'Password'),
+                _buildInputField(
+                    controller: _usernameController, label: 'Username'),
+                _buildInputField(
+                    controller: _passwordController, label: 'Password'),
               ],
             ),
           ),
@@ -170,7 +203,8 @@ class _UserPageState extends State<UserPage> {
                 children: [
                   ElevatedButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                    style:
+                        ElevatedButton.styleFrom(backgroundColor: Colors.red),
                     child: const Text('Batal'),
                   ),
                   ElevatedButton(
@@ -183,7 +217,8 @@ class _UserPageState extends State<UserPage> {
                         }
                       }
                     },
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                    style:
+                        ElevatedButton.styleFrom(backgroundColor: Colors.green),
                     child: const Text('Simpan'),
                   ),
                 ],
@@ -195,7 +230,10 @@ class _UserPageState extends State<UserPage> {
     );
   }
 
-  Widget _buildInputField({required TextEditingController controller, required String label, TextInputType keyboardType = TextInputType.text}) {
+  Widget _buildInputField(
+      {required TextEditingController controller,
+      required String label,
+      TextInputType keyboardType = TextInputType.text}) {
     return TextFormField(
       controller: controller,
       decoration: InputDecoration(labelText: label),
@@ -207,15 +245,14 @@ class _UserPageState extends State<UserPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('CRUD User'),
-        titleTextStyle: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.bold),
-      ),
       backgroundColor: Colors.white,
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : user.isEmpty
-              ? const Center(child: Text('Tidak ada user!', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)))
+              ? const Center(
+                  child: Text('Tidak ada user!',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)))
               : ListView.builder(
                   padding: const EdgeInsets.all(16),
                   itemCount: user.length,
@@ -225,7 +262,9 @@ class _UserPageState extends State<UserPage> {
                       elevation: 4,
                       margin: const EdgeInsets.symmetric(vertical: 10),
                       child: ListTile(
-                        title: Text(item['username'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold)),
+                        title: Text(item['username'] ?? 'Unknown',
+                            style:
+                                const TextStyle(fontWeight: FontWeight.bold)),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -235,8 +274,15 @@ class _UserPageState extends State<UserPage> {
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            IconButton(icon: const Icon(Icons.edit, color: Colors.blue), onPressed: () => _showUserDialog(userData: item)),
-                            IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _deleteUser(item['id'])),
+                            IconButton(
+                                icon:
+                                    const Icon(Icons.edit, color: Colors.blue),
+                                onPressed: () =>
+                                    _showUserDialog(userData: item)),
+                            IconButton(
+                                icon:
+                                    const Icon(Icons.delete, color: Colors.red),
+                                onPressed: () => _deleteUser(item['id'])),
                           ],
                         ),
                       ),
@@ -244,7 +290,7 @@ class _UserPageState extends State<UserPage> {
                   },
                 ),
       floatingActionButton: FloatingActionButton(
-        heroTag: 'fab2',
+        heroTag: 'fab1',
         onPressed: () => _showUserDialog(),
         child: const Icon(Icons.add),
         backgroundColor: Colors.blue,
