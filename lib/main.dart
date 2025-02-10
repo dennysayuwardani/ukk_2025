@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:ukk_2025/login_page.dart';
 import 'package:ukk_2025/pelanggan_page.dart';
+import 'package:ukk_2025/penjualan_page.dart';
 import 'package:ukk_2025/product_page.dart';
+import 'package:ukk_2025/riwayat.dart';
 import 'package:ukk_2025/user_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -64,6 +66,8 @@ class _MainPageState extends State<MainPage> {
     const UserPage(),
     const ProdukPage(),
     const PelangganPage(),
+    const PenjualanPage(),
+    const RiwayatPage(),
   ];
 
   void _onTap(int index) {
@@ -86,12 +90,12 @@ class _MainPageState extends State<MainPage> {
 
   @override
   Widget build(BuildContext context) {
-    final titles = ['CRUD User', 'CRUD Produk', 'CRUD Pelanggan'];
+    final titles = ['User', 'Produk', 'Pelanggan', 'Penjualan', 'Riwayat'];
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text(titles[_currentIndex]),
-        titleTextStyle: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.bold),
+        titleTextStyle: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blue),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.red),
@@ -114,6 +118,8 @@ class _MainPageState extends State<MainPage> {
           BottomNavigationBarItem(icon: Icon(Icons.person_2_outlined), label: 'User'),
           BottomNavigationBarItem(icon: Icon(Icons.shopping_bag_outlined),label: 'Produk'),
           BottomNavigationBarItem(icon: Icon(Icons.add_reaction_outlined), label: 'Pelanggan'),
+          BottomNavigationBarItem(icon: Icon(Icons.receipt_long), label: 'Penjualan'),
+          BottomNavigationBarItem(icon: Icon(Icons.history_outlined), label: 'Riwayat'),
         ],
       ),
     );

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-
 class PelangganPage extends StatefulWidget {
   const PelangganPage({Key? key}) : super(key: key);
 
@@ -39,6 +38,8 @@ class _PelangganPageState extends State<PelangganPage> {
       if (mounted) {
         setState(() {
           pelanggan = List<Map<String, dynamic>>.from(response);
+          filteredPelanggan =
+              List.from(pelanggan); // Mulai dengan menampilkan semua pelanggan
           isLoading =
               false; // Setelah data berhasil diambil, loading dihentikan
         });
@@ -60,8 +61,7 @@ class _PelangganPageState extends State<PelangganPage> {
     });
   }
 
-  Future<bool> _isDuplicateNumber(String namaPelanggan,
-      {int? excludeId}) async {
+  Future<bool> _isDuplicateName(String namaPelanggan, {int? excludeId}) async {
     final query =
         supabase.from('pelanggan').select().eq('nama_pelanggan', namaPelanggan);
     if (excludeId != null) {
@@ -76,7 +76,7 @@ class _PelangganPageState extends State<PelangganPage> {
     final String alamat = _alamatController.text;
     final String nomorTelepon = _nomorTeleponController.text;
 
-    if (await _isDuplicateNumber(namaPelanggan)) {
+    if (await _isDuplicateName(namaPelanggan)) {
       _showSnackBar('Nama pelanggan sudah terdaftar!', Colors.red);
       return;
     }
@@ -86,6 +86,15 @@ class _PelangganPageState extends State<PelangganPage> {
         'alamat': alamat,
         'nomor_telepon': nomorTelepon,
       }).select();
+
+      // Beri waktu agar data tersimpan di database sebelum diperbarui di halaman penjualan
+      Future.delayed(Duration(milliseconds: 500), () {
+        setState(() {
+          _fetchPelanggan(); // Memuat ulang daftar pelanggan
+        });
+      });
+
+      Navigator.pop(context); // Tutup dialog/tampilan input pelanggan
 
       if (response.isNotEmpty && mounted) {
         if (mounted) {
@@ -100,7 +109,6 @@ class _PelangganPageState extends State<PelangganPage> {
       }
       _showSnackBar('Pelanggan berhasil ditambahkan', Colors.green);
       _fetchPelanggan(); // Memanggil ulang data produk
-      Navigator.pop(context);
     } catch (e) {
       _showSnackBar('Gagal menambahkan pelanggan: $e', Colors.red);
     }
@@ -111,7 +119,7 @@ class _PelangganPageState extends State<PelangganPage> {
     final String alamat = _alamatController.text;
     final String nomorTelepon = _nomorTeleponController.text;
 
-    if (await _isDuplicateNumber(namaPelanggan, excludeId: id)) {
+    if (await _isDuplicateName(namaPelanggan, excludeId: id)) {
       _showSnackBar(
           'Nama pelanggan sudah digunakan pelanggan lain!', Colors.red);
       return;
@@ -163,7 +171,10 @@ class _PelangganPageState extends State<PelangganPage> {
                     onPressed: () => Navigator.of(context).pop(),
                     style:
                         ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                    child: const Text('Batal'),
+                    child: const Text(
+                      'Batal',
+                      style: TextStyle(color: Colors.white),
+                    ),
                   ),
                   ElevatedButton(
                     onPressed: () async {
@@ -188,7 +199,10 @@ class _PelangganPageState extends State<PelangganPage> {
                     },
                     style:
                         ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                    child: const Text('Hapus'),
+                    child: const Text(
+                      'Hapus',
+                      style: TextStyle(color: Colors.white),
+                    ),
                   ),
                 ],
               ),
@@ -260,7 +274,10 @@ class _PelangganPageState extends State<PelangganPage> {
                     onPressed: () => Navigator.of(context).pop(),
                     style:
                         ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                    child: const Text('Batal'),
+                    child: const Text(
+                      'Batal',
+                      style: TextStyle(color: Colors.white),
+                    ),
                   ),
                   ElevatedButton(
                     onPressed: () {
@@ -274,7 +291,10 @@ class _PelangganPageState extends State<PelangganPage> {
                     },
                     style:
                         ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                    child: const Text('Simpan'),
+                    child: const Text(
+                      'Simpan',
+                      style: TextStyle(color: Colors.white),
+                    ),
                   ),
                 ],
               ),
@@ -294,6 +314,7 @@ class _PelangganPageState extends State<PelangganPage> {
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: TextField(
+              controller: _searchController,
               decoration: InputDecoration(
                 hintText: 'Cari Pelanggan...',
                 prefixIcon: Icon(Icons.search),
@@ -319,9 +340,9 @@ class _PelangganPageState extends State<PelangganPage> {
                           mainAxisSpacing: 10,
                           childAspectRatio: 4,
                         ),
-                        itemCount: pelanggan.length,
+                        itemCount: filteredPelanggan.length,
                         itemBuilder: (context, index) {
-                          final item = pelanggan[index];
+                          final item = filteredPelanggan[index];
                           return Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
@@ -375,7 +396,10 @@ class _PelangganPageState extends State<PelangganPage> {
       floatingActionButton: FloatingActionButton(
         heroTag: 'fab3',
         onPressed: () => _showPelangganDialog(),
-        child: const Icon(Icons.add),
+        child: const Icon(
+          Icons.add,
+          color: Colors.white,
+        ),
         backgroundColor: Colors.blue,
       ),
     );

@@ -158,7 +158,7 @@ class _ProdukPageState extends State<ProdukPage> {
                 ElevatedButton(
                   onPressed: () => Navigator.of(context).pop(),
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                  child: const Text('Batal'),
+                  child: const Text('Batal', style: TextStyle(color: Colors.white),),
                 ),
                 ElevatedButton(
                   onPressed: () {
@@ -167,7 +167,7 @@ class _ProdukPageState extends State<ProdukPage> {
                   },
                   style:
                       ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                  child: const Text('Hapus'),
+                  child: const Text('Hapus', style: TextStyle(color: Colors.white),),
                 ),
               ],
             ),
@@ -242,14 +242,14 @@ class _ProdukPageState extends State<ProdukPage> {
                 ElevatedButton(
                   onPressed: () => Navigator.of(context).pop(),
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                  child: Text('Batal', style: GoogleFonts.poppins()),
+                  child: Text('Batal', style: GoogleFonts.poppins(color: Colors.white)),
                 ),
                 ElevatedButton(
                   onPressed: onConfirm,
                   style:
                       ElevatedButton.styleFrom(backgroundColor: Colors.green),
                   child: Text(produk == null ? 'Tambah' : 'Simpan',
-                      style: GoogleFonts.poppins()),
+                      style: GoogleFonts.poppins(color: Colors.white)),
                 ),
               ],
             ),
@@ -292,7 +292,7 @@ class _ProdukPageState extends State<ProdukPage> {
               }
             },
           ),
-          child: const Icon(Icons.add),
+          child: const Icon(Icons.add, color: Colors.white,),
           backgroundColor: Colors.blue,
         ),
         body: Column(children: [

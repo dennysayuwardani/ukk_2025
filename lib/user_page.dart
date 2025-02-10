@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:google_fonts/google_fonts.dart';
+
 
 class UserPage extends StatefulWidget {
   const UserPage({Key? key}) : super(key: key);
@@ -76,9 +78,9 @@ class _UserPageState extends State<UserPage> {
     final String password = _passwordController.text;
 
     if (await _isUsernameExists(username, excludeId: id)) {
-    _showSnackBar('Username sudah digunakan oleh user lain!', Colors.red);
-    return; // Hentikan proses jika username sudah ada
-  }
+      _showSnackBar('Username sudah digunakan oleh user lain!', Colors.red);
+      return; // Hentikan proses jika username sudah ada
+    }
     try {
       final response = await supabase
           .from('user')
@@ -123,7 +125,7 @@ class _UserPageState extends State<UserPage> {
                     onPressed: () => Navigator.of(context).pop(),
                     style:
                         ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                    child: const Text('Batal'),
+                    child: const Text('Batal', style: TextStyle(color: Colors.white),),
                   ),
                   ElevatedButton(
                     onPressed: () async {
@@ -142,7 +144,7 @@ class _UserPageState extends State<UserPage> {
                     },
                     style:
                         ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                    child: const Text('Hapus'),
+                    child: const Text('Hapus', style: TextStyle(color: Colors.white),),
                   ),
                 ],
               ),
@@ -205,7 +207,7 @@ class _UserPageState extends State<UserPage> {
                     onPressed: () => Navigator.of(context).pop(),
                     style:
                         ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                    child: const Text('Batal'),
+                    child: const Text('Batal', style: TextStyle(color: Colors.white),),
                   ),
                   ElevatedButton(
                     onPressed: () {
@@ -219,7 +221,7 @@ class _UserPageState extends State<UserPage> {
                     },
                     style:
                         ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                    child: const Text('Simpan'),
+                    child: const Text('Simpan', style: TextStyle(color: Colors.white),),
                   ),
                 ],
               ),
@@ -246,53 +248,82 @@ class _UserPageState extends State<UserPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : user.isEmpty
-              ? const Center(
-                  child: Text('Tidak ada user!',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)))
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: user.length,
-                  itemBuilder: (context, index) {
-                    final item = user[index];
-                    return Card(
-                      elevation: 4,
-                      margin: const EdgeInsets.symmetric(vertical: 10),
-                      child: ListTile(
-                        title: Text(item['username'] ?? 'Unknown',
-                            style:
-                                const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Password: ${item['password']}'),
-                          ],
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+          ),
+          Expanded(
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : user.isEmpty
+                    ? const Center(
+                        child: Text('Tidak ada user!',
+                            style: TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold)))
+                    : GridView.builder(
+                        padding: const EdgeInsets.all(10),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 1,
+                          crossAxisSpacing: 13,
+                          mainAxisSpacing: 10,
+                          childAspectRatio: 5,
                         ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                                icon:
-                                    const Icon(Icons.edit, color: Colors.blue),
-                                onPressed: () =>
-                                    _showUserDialog(userData: item)),
-                            IconButton(
-                                icon:
-                                    const Icon(Icons.delete, color: Colors.red),
-                                onPressed: () => _deleteUser(item['id'])),
-                          ],
-                        ),
+                        itemCount: user.length,
+                        itemBuilder: (context, index) {
+                          final item = user[index];
+                          return Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white10,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: Colors.grey),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(item['username'] ?? 'Unknown',
+                                          style: GoogleFonts.poppins(
+                                              fontWeight: FontWeight.bold)),
+                                      Text('Password: ${item['password']}',
+                                          style: GoogleFonts.poppins()),
+                                    ],
+                                  ),
+                                ),
+                                Row(
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.edit,
+                                          color: Colors.blue),
+                                      onPressed: () => _showUserDialog(),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete,
+                                          color: Colors.red),
+                                      onPressed: () => _deleteUser(
+                                          item['id']),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          );
+                        },
                       ),
-                    );
-                  },
-                ),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         heroTag: 'fab1',
-        onPressed: () => _showUserDialog(),
-        child: const Icon(Icons.add),
+        onPressed: () => _showUserDialog(
+        ),
+        child: const Icon(Icons.add, color: Colors.white,),
         backgroundColor: Colors.blue,
       ),
     );
