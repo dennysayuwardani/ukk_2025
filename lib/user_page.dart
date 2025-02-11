@@ -113,7 +113,7 @@ class _UserPageState extends State<UserPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Konfirmasi Penghapusan'),
+          title: const Text('Hapus User'),
           content: const Text('Apakah Anda yakin ingin menghapus user ini?'),
           actions: [
             Padding(
@@ -301,7 +301,7 @@ class _UserPageState extends State<UserPage> {
                                     IconButton(
                                       icon: const Icon(Icons.edit,
                                           color: Colors.blue),
-                                      onPressed: () => _showUserDialog(),
+                                      onPressed: () => _showUserDialog(userData: item),
                                     ),
                                     IconButton(
                                       icon: const Icon(Icons.delete,
@@ -324,7 +324,7 @@ class _UserPageState extends State<UserPage> {
         onPressed: () => _showUserDialog(
         ),
         child: const Icon(Icons.add, color: Colors.white,),
-        backgroundColor: Colors.blue,
+        backgroundColor: Color(0xFF1A374D),
       ),
     );
   }

@@ -169,7 +169,6 @@ class _RiwayatPageState extends State<RiwayatPage> {
                               final namaProduk = detail['produk'] != null
                                   ? detail['produk']['nama_produk']
                                   : 'Produk tidak ditemukan';
-
                               return Padding(
                                 padding:
                                     const EdgeInsets.symmetric(vertical: 8),
@@ -231,7 +230,7 @@ class _RiwayatPageState extends State<RiwayatPage> {
                                                 context), // Tutup dialog
                                             style: ElevatedButton.styleFrom(
                                                 backgroundColor: Colors.red),
-                                            child: const Text('Batal'),
+                                            child: const Text('Batal', style: TextStyle(color: Colors.white),),
                                           ),
                                           ElevatedButton(
                                             onPressed: () {
@@ -242,7 +241,7 @@ class _RiwayatPageState extends State<RiwayatPage> {
                                             },
                                             style: ElevatedButton.styleFrom(
                                                 backgroundColor: Colors.green),
-                                            child: const Text('Hapus'),
+                                            child: const Text('Hapus', style: TextStyle(color: Colors.white),),
                                           ),
                                         ],
                                       ),

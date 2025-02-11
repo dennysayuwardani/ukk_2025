@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:ukk_2025/main.dart';
 
 class LoginPage extends StatefulWidget {
@@ -57,13 +58,11 @@ class _LoginPageState extends State<LoginPage> {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('username', response['username']);
 
-        //Menampilkan Snackbar untuk info sukses login
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Login berhasil'),
           backgroundColor: Colors.green,
         ));
 
-        //Setelah login diarahka ke mainpage
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const MainPage()),
@@ -81,16 +80,9 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   @override
-  void dispose() {
-    _usernameController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFB1D0E0), // Biru pastel lembut
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -99,34 +91,52 @@ class _LoginPageState extends State<LoginPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const CircleAvatar(
+                CircleAvatar(
                   radius: 55,
-                  backgroundColor: Colors.blue,
-                  child: Icon(Icons.person, size: 85, color: Colors.white),
+                  backgroundColor: const Color(0xFF1A374D), // Biru tua elegan
+                  child: const Icon(Icons.coffee, size: 85, color: Colors.white),
                 ),
                 const SizedBox(height: 20),
-                Text("Selamat Datang", style: _textStyle(24, FontWeight.bold)),
-                Text("Silahkan Login",
-                    style: _textStyle(16, FontWeight.normal)),
+                Text(
+                  "Kopi Kita",
+                  style: GoogleFonts.poppins(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF1A374D), // Warna biru tua
+                  ),
+                ),
+                Text(
+                  "Nikmati Kopi, Nikmati Hidup",
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.normal,
+                    color: const Color(0xFF406882), // Biru keabu-abuan
+                  ),
+                ),
                 const SizedBox(height: 45),
-                _buildTextField(
-                    "Username", _usernameController, _usernameError),
+                _buildTextField("Username", _usernameController, _usernameError, Icons.person),
                 const SizedBox(height: 10),
-                _buildPasswordField(),
+                _buildTextField("Password", _passwordController, _passwordError, Icons.lock, isPassword: true),
                 const SizedBox(height: 50),
                 ElevatedButton(
                   onPressed: _isLoading ? null : _login,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
+                    backgroundColor: const Color(0xFF1A374D), // Biru tua
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15),
                     ),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 70, vertical: 15),
+                    padding: const EdgeInsets.symmetric(horizontal: 70, vertical: 15),
                   ),
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text("Login", style: TextStyle(fontSize: 20, color: Colors.white)),
+                      : Text(
+                          "Login",
+                          style: GoogleFonts.poppins(
+                            fontSize: 20,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
               ],
             ),
@@ -136,48 +146,36 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  TextStyle _textStyle(double fontSize, FontWeight fontWeight) {
-    return TextStyle(
-        fontSize: fontSize, fontWeight: fontWeight, color: Colors.blue);
-  }
-
-  Widget _buildTextField(
-      String label, TextEditingController controller, String? errorText) {
+  Widget _buildTextField(String label, TextEditingController controller, String? errorText, IconData icon, {bool isPassword = false}) {
     return TextFormField(
       controller: controller,
+      obscureText: isPassword ? !_isPasswordVisible : false,
       decoration: InputDecoration(
+        prefixIcon: Icon(icon, color: const Color(0xFF406882)), // Biru keabu-abuan
         hintText: label,
         labelText: label,
         errorText: errorText,
-        border: const UnderlineInputBorder(),
+        labelStyle: GoogleFonts.poppins(),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Color(0xFF1A374D)), // Biru tua
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Color(0xFF406882)), // Biru keabu-abuan
+        ),
+        suffixIcon: isPassword
+            ? IconButton(
+                icon: Icon(
+                  _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                  color: Color(0xFF1A374D),
+                ),
+                onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+              )
+            : null,
       ),
       validator: (value) {
         if (value!.isEmpty) return '$label tidak boleh kosong';
-        return null;
-      },
-    );
-  }
-
-  Widget _buildPasswordField() {
-    return TextFormField(
-      controller: _passwordController,
-      obscureText: !_isPasswordVisible,
-      decoration: InputDecoration(
-        hintText: "Password",
-        labelText: 'Password',
-        errorText: _passwordError,
-        border: const UnderlineInputBorder(),
-        suffixIcon: IconButton(
-          icon: Icon(
-            _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-            color: Colors.grey,
-          ),
-          onPressed: () =>
-              setState(() => _isPasswordVisible = !_isPasswordVisible),
-        ),
-      ),
-      validator: (value) {
-        if (value!.isEmpty) return 'Password tidak boleh kosong';
         return null;
       },
     );

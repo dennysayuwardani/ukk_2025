@@ -53,23 +53,30 @@ class _PelangganPageState extends State<PelangganPage> {
   void _filterPelanggan() {
     final query = _searchController.text.toLowerCase();
     setState(() {
-      filteredPelanggan = pelanggan
-          .where((pelanggan) => pelanggan['nama_pelanggan']
-              .toLowerCase()
-              .contains(query)) // Filter produk berdasarkan nama
-          .toList();
+      filteredPelanggan = pelanggan.where((pelanggan) {
+        final nama = pelanggan['nama_pelanggan'].toLowerCase();
+        final alamat = pelanggan['alamat'].toLowerCase();
+        final nomor = pelanggan['nomor_telepon'].toLowerCase();
+
+        return nama.contains(query) ||
+            alamat.contains(query) ||
+            nomor.contains(query);
+      }).toList();
     });
   }
 
-  Future<bool> _isDuplicateName(String namaPelanggan, {int? excludeId}) async {
-    final query =
-        supabase.from('pelanggan').select().eq('nama_pelanggan', namaPelanggan);
+Future<bool> _isDuplicateName(String namaPelanggan, {int? excludeId}) async {
+    final response = await supabase
+        .from('pelanggan')
+        .select('pelanggan_id')
+        .eq('nama_pelanggan', namaPelanggan);
+        
+    // Pastikan hanya pelanggan lain yang dihitung duplikat
     if (excludeId != null) {
-      query.neq('pelanggan_id', excludeId);
+        response.removeWhere((item) => item['pelanggan_id'] == excludeId);
     }
-    final existing = await query;
-    return existing.isNotEmpty;
-  }
+final existing = await response;
+    return existing.isNotEmpty;}
 
   Future<void> _addPelanggan() async {
     final String namaPelanggan = _namaPelangganController.text;
@@ -94,8 +101,6 @@ class _PelangganPageState extends State<PelangganPage> {
         });
       });
 
-      Navigator.pop(context); // Tutup dialog/tampilan input pelanggan
-
       if (response.isNotEmpty && mounted) {
         if (mounted) {
           setState(() {
@@ -108,6 +113,8 @@ class _PelangganPageState extends State<PelangganPage> {
         }
       }
       _showSnackBar('Pelanggan berhasil ditambahkan', Colors.green);
+
+      Navigator.pop(context, true); // << Tambahkan ini
       _fetchPelanggan(); // Memanggil ulang data produk
     } catch (e) {
       _showSnackBar('Gagal menambahkan pelanggan: $e', Colors.red);
@@ -138,6 +145,7 @@ class _PelangganPageState extends State<PelangganPage> {
       if (response.isNotEmpty) {
         if (mounted) {
           setState(() {
+            _fetchPelanggan();
             final index =
                 pelanggan.indexWhere((item) => item['pelanggan_id'] == id);
             if (index != -1) {
@@ -158,7 +166,7 @@ class _PelangganPageState extends State<PelangganPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Konfirmasi Penghapusan'),
+          title: const Text('Hapus Pelanggan'),
           content:
               const Text('Apakah Anda yakin ingin menghapus pelanggan ini?'),
           actions: [
@@ -254,10 +262,15 @@ class _PelangganPageState extends State<PelangganPage> {
                   decoration: const InputDecoration(labelText: 'Nomor Telepon'),
                   keyboardType: TextInputType.phone,
                   validator: (value) {
-                    if (value == null || value.isEmpty)
+                    if (value == null || value.isEmpty) {
                       return 'Nomor Telepon tidak boleh kosong';
-                    if (!RegExp(r'^[0-9]+').hasMatch(value))
+                    }
+                    if (!RegExp(r'^[0-9]+').hasMatch(value)) {
                       return 'Nomor Telepon harus berupa angka';
+                    }
+                    if (value.length < 10 || value.length > 13) {
+                      return 'Nomor Telepon harus 10-13 digit';
+                    }
                     return null;
                   },
                 ),
@@ -400,7 +413,7 @@ class _PelangganPageState extends State<PelangganPage> {
           Icons.add,
           color: Colors.white,
         ),
-        backgroundColor: Colors.blue,
+        backgroundColor: Color(0xFF1A374D),
       ),
     );
   }

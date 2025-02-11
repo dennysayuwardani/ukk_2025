@@ -44,16 +44,18 @@ class _ProdukPageState extends State<ProdukPage> {
     }
   }
 
-  void _filterProduk() {
-    final query = _searchController.text.toLowerCase();
-    setState(() {
-      filteredProduk = produk
-          .where((product) => product['nama_produk']
-              .toLowerCase()
-              .contains(query)) // Filter produk berdasarkan nama
-          .toList();
-    });
-  }
+void _filterProduk() {
+  final query = _searchController.text.toLowerCase();
+  setState(() {
+    filteredProduk = produk.where((product) {
+      final nama = product['nama_produk'].toLowerCase();
+      final harga = product['harga'].toString().toLowerCase(); // Konversi harga ke string
+      final stok = product['stok'].toString().toLowerCase();   // Konversi stok ke string
+
+      return nama.contains(query) || harga.contains(query) || stok.contains(query);
+    }).toList();
+  });
+}
 
   Future<void> _addProdukToSupabase() async {
     final nama = _namaProdukController.text;
@@ -292,8 +294,8 @@ class _ProdukPageState extends State<ProdukPage> {
               }
             },
           ),
-          child: const Icon(Icons.add, color: Colors.white,),
-          backgroundColor: Colors.blue,
+          child: Icon(Icons.add, color: Colors.white),
+          backgroundColor: Color(0xFF1A374D),
         ),
         body: Column(children: [
           Padding(

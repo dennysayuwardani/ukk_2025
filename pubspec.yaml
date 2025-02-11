@@ -36,6 +36,13 @@ dependencies:
   cupertino_icons: ^1.0.8
   supabase_flutter: ^2.8.3
   google_fonts: ^6.2.1
+  intl: ^0.20.2
+  printing: ^5.14.0
+  pdf: ^3.11.2
+  path_provider: ^2.1.5
+  open_file: ^3.5.10
+  share_plus: ^10.1.4
+  universal_html: ^2.2.4
 
 dev_dependencies:
   flutter_test:

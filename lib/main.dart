@@ -9,7 +9,6 @@ import 'package:ukk_2025/user_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-
 Future<void> main() async {
   await Supabase.initialize(
     url: 'https://bnhdsiglgsdupjhuaokd.supabase.co',
@@ -24,15 +23,17 @@ class MyApp extends StatelessWidget {
 
   Future<bool> _checkLoginStatus() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('username') != null; // Cek apakah ada user yang login
+    return prefs.getString('username') !=
+        null; // Cek apakah ada user yang login
   }
 
-@override
+  @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Aplikasi Kasir',
       debugShowCheckedModeBanner: false,
-      home: Scaffold( // Tambahkan Scaffold agar tidak kosong
+      home: Scaffold(
+        // Tambahkan Scaffold agar tidak kosong
         body: FutureBuilder<bool>(
           future: _checkLoginStatus(),
           builder: (context, snapshot) {
@@ -81,7 +82,7 @@ class _MainPageState extends State<MainPage> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
 
-    setState(() {}); // Tambahkan ini untuk memperbarui UI setelah logout
+    setState(() {});
 
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (context) => const LoginPage()),
@@ -91,37 +92,65 @@ class _MainPageState extends State<MainPage> {
   @override
   Widget build(BuildContext context) {
     final titles = ['User', 'Produk', 'Pelanggan', 'Penjualan', 'Riwayat'];
-    return Scaffold(
-      backgroundColor: Colors.white,
+    
+return Scaffold(
+      backgroundColor: const Color(0xFFFAF3E0), // Warna beige sebagai background
       appBar: AppBar(
-        title: Text(titles[_currentIndex]),
-        titleTextStyle: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blue),
+        backgroundColor: const Color(0xFF1A374D), // Biru Navy untuk AppBar
+        title: Text(
+          titles[_currentIndex],
+          style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout, color: Colors.red),
+            tooltip: 'Logout',
+            icon: const Icon(Icons.logout, color: Colors.white),
             onPressed: _logout,
           ),
         ],
-        backgroundColor: Colors.transparent,
-        elevation: 0,
       ),
+
       body: IndexedStack(
         index: _currentIndex,
         children: _pages,
       ),
+
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.grey,
         onTap: _onTap,
+        type: BottomNavigationBarType.shifting, // Mode shifting agar teks hanya muncul saat dipilih
+        selectedItemColor: const Color(0xFFFFD700), // Warna emas untuk item aktif
+        unselectedItemColor: Colors.white,
+        selectedLabelStyle: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+        unselectedLabelStyle: GoogleFonts.poppins(),
+
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.person_2_outlined), label: 'User'),
-          BottomNavigationBarItem(icon: Icon(Icons.shopping_bag_outlined),label: 'Produk'),
-          BottomNavigationBarItem(icon: Icon(Icons.add_reaction_outlined), label: 'Pelanggan'),
-          BottomNavigationBarItem(icon: Icon(Icons.receipt_long), label: 'Penjualan'),
-          BottomNavigationBarItem(icon: Icon(Icons.history_outlined), label: 'Riwayat'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_2_outlined),
+            label: 'User',
+            backgroundColor: Color(0xFF1A374D), // Biru Navy sebagai background
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.coffee),
+            label: 'Produk',
+            backgroundColor: Color(0xFF1A374D),
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.people_alt_outlined),
+            label: 'Pelanggan',
+            backgroundColor: Color(0xFF1A374D),
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.point_of_sale),
+            label: 'Penjualan',
+            backgroundColor: Color(0xFF1A374D),
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.history_outlined),
+            label: 'Riwayat',
+            backgroundColor: Color(0xFF1A374D),
+          ),
         ],
       ),
-    );
-  }
+    );  }
 }
