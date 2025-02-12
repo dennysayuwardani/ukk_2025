@@ -124,75 +124,191 @@ class _PenjualanPageState extends State<PenjualanPage> {
       pelangganId: selectedPelangganId,
       produkTerpilih: produkTerpilih,
       totalHarga: totalHarga,
-      onTransactionComplete: _resetPenjualan,
+      onTransactionComplete: () {
+        _resetPenjualan();
+        // Pindahkan logika penyimpanan ke sini
+        _saveTransaction(selectedPelangganId, produkTerpilih, totalHarga);
+      },
     );
   }
 
-Future<void> _generatePDF(int? pelangganId, Map<String, dynamic>? pelangganData) async {
-  final pdf = pw.Document();
+  Future<void> _saveTransaction(int? pelangganId,
+      List<Map<String, dynamic>> produkTerpilih, double totalHarga) async {
+    final supabase = Supabase.instance.client;
+    Map<String, dynamic>? pelangganData;
 
-  pdf.addPage(
-    pw.Page(
-      build: (pw.Context context) {
-        return pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Text('Struk Pembelian',
-                style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
-            pw.SizedBox(height: 10),
-            pw.Text(pelangganId != null
-                ? 'Pelanggan: ${pelangganData?['nama_pelanggan'] ?? "-"}'
-                : 'Pelanggan: Non-member'),
-            if (pelangganId != null) ...[
-              pw.Text('Alamat: ${pelangganData?['alamat'] ?? "-"}'),
-              pw.Text('No. Telp: ${pelangganData?['nomor_telepon'] ?? "-"}'),
-            ],
-            pw.SizedBox(height: 10),
-            pw.Text('Produk yang dibeli:', style: pw.TextStyle(fontSize: 18)),
-            pw.Divider(),
-            ...produkTerpilih.map((produk) => pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
-                    pw.Text('${produk['nama_produk']} x${produk['jumlah_produk']}'),
-                    pw.Text('Rp ${produk['subtotal']}'),
-                  ],
-                )),
-            pw.Divider(),
-            pw.Text('Total Harga: Rp $totalHarga',
-                style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
-          ],
-        );
-      },
-    ),
-  );
-
-  final pdfBytes = await pdf.save();
-
-  if (kIsWeb) {
-    // Jika berjalan di web, simpan PDF dengan savePdfWeb
-    savePdfWeb(pdfBytes, 'invoice.pdf');
-  } else {
-    // Jika berjalan di Android/iOS, simpan ke file dan bagikan
     try {
-      final directory = await getApplicationDocumentsDirectory();
-      final filePath = '${directory.path}/struk_pembelian.pdf';
-      final file = File(filePath);
-      await file.writeAsBytes(pdfBytes);
-      await Share.shareXFiles([XFile(file.path)], text: 'Struk Pembelian');
+      // Ambil data pelanggan jika ada
+      if (pelangganId != null) {
+        final response = await supabase
+            .from('pelanggan')
+            .select()
+            .eq('pelanggan_id', pelangganId)
+            .single();
+        pelangganData = response;
+      }
+
+      // Simpan transaksi penjualan
+      final penjualanResponse = await supabase
+          .from('penjualan')
+          .insert({
+            'tanggal_penjualan': DateTime.now().toIso8601String(),
+            'total_harga': totalHarga,
+            'pelanggan_id': pelangganId,
+          })
+          .select()
+          .single();
+
+      final penjualanId = penjualanResponse['penjualan_id'];
+
+      // Simpan detail penjualan
+      for (var produk in produkTerpilih) {
+        await supabase.from('detail_penjualan').insert({
+          'penjualan_id': penjualanId,
+          'produk_id': produk['produk_id'],
+          'jumlah_produk': produk['jumlah_produk'],
+          'subtotal': produk['subtotal'],
+        });
+
+        final int newStok = produk['stok'] - produk['jumlah_produk'];
+        await supabase
+            .from('produk')
+            .update({'stok': newStok}).eq('produk_id', produk['produk_id']);
+      }
+
+      // Tampilkan snackbar sukses
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Pembelian berhasil disimpan.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      // Tampilkan dialog checkout setelah transaksi berhasil
+      showCheckoutDialog(
+        context,
+        pelangganId: pelangganId,
+        produkTerpilih: produkTerpilih,
+        totalHarga: totalHarga,
+        onTransactionComplete: () {
+          // Reset penjualan atau lakukan tindakan lain jika diperlukan
+          _resetPenjualan();
+        },
+      );
     } catch (e) {
-      print('Error saat menyimpan atau berbagi PDF: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal menyimpan pembelian: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
-}
 
-void savePdfWeb(Uint8List pdfBytes, String fileName) {
-  final blob = html.Blob([pdfBytes]);
-  final url = html.Url.createObjectUrlFromBlob(blob);
-  final anchor = html.AnchorElement(href: url)
-    ..setAttribute("download", fileName)
-    ..click();
-  html.Url.revokeObjectUrl(url);
-}
+  Future<void> _generatePDF(
+      int? pelangganId, Map<String, dynamic>? pelangganData) async {
+    final pdf = pw.Document();
+
+    // Hitung subtotal dari produk yang dibeli
+    double subtotal =
+        produkTerpilih.fold(0, (sum, item) => sum + item['subtotal']);
+
+    // Diskon 5% untuk pelanggan member
+    double diskon = pelangganId != null ? subtotal * 0.05 : 0;
+
+    // Subtotal setelah diskon
+    double subtotalSetelahDiskon = subtotal - diskon;
+
+    // Pajak 10% setelah diskon
+    double pajak = totalHarga * 0.10;
+
+    // Biaya layanan tetap Rp 2.000
+    double biayaLayanan = 2000;
+
+    // Total akhir setelah diskon, pajak, dan biaya layanan
+    double totalAkhir = subtotalSetelahDiskon + pajak + biayaLayanan;
+
+// Ambil tanggal dan waktu transaksi
+  DateTime now = DateTime.now();
+  String tanggalTransaksi = "${now.toLocal().toString().split(' ')[0]} ${now.hour}:${now.minute.toString().padLeft(2, '0')}";
+
+
+    pdf.addPage(
+      pw.Page(
+        build: (pw.Context context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text('Struk Pembelian',
+                  style: pw.TextStyle(
+                      fontSize: 24, fontWeight: pw.FontWeight.bold)),
+              pw.SizedBox(height: 10),
+              
+              pw.Text('Tanggal: $tanggalTransaksi',
+                  style: pw.TextStyle(fontSize: 16)),
+              pw.Text(pelangganId != null
+                  ? 'Pelanggan: ${pelangganData?['nama_pelanggan'] ?? "-"}'
+                  : 'Pelanggan: Non-member'),
+              if (pelangganId != null) ...[
+                pw.Text('Alamat: ${pelangganData?['alamat'] ?? "-"}'),
+                pw.Text('No. Telp: ${pelangganData?['nomor_telepon'] ?? "-"}'),
+              ],
+              pw.SizedBox(height: 10),
+              pw.Text('Produk yang dibeli:', style: pw.TextStyle(fontSize: 18)),
+              pw.Divider(),
+              ...produkTerpilih.map((produk) => pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text(
+                          '${produk['nama_produk']} x${produk['jumlah_produk']}'),
+                      pw.Text('Rp ${produk['subtotal']}'),
+                    ],
+                  )),
+              pw.Divider(),
+              pw.Text('Subtotal: Rp ${subtotal.toStringAsFixed(0)}'),
+              pw.Text('Diskon: Rp -${diskon.toStringAsFixed(0)}'),
+              pw.Text('Pajak (10%): Rp ${pajak.toStringAsFixed(0)}'),
+              pw.Text('Biaya Layanan: Rp ${biayaLayanan.toStringAsFixed(0)}'),
+              pw.Divider(),
+              pw.Text('Total Harga: Rp ${totalAkhir.toStringAsFixed(0)}',
+                  style: pw.TextStyle(
+                      fontSize: 18, fontWeight: pw.FontWeight.bold)),
+            ],
+          );
+        },
+      ),
+    );
+
+    final pdfBytes = await pdf.save();
+    final namaFile = pelangganId != null
+        ? 'Struk_${pelangganData?['nama_pelanggan'] ?? 'Pelanggan'}.pdf'
+        : 'Struk_Non_Member.pdf';
+
+    if (kIsWeb) {
+      // Jika berjalan di web, simpan PDF dengan savePdfWeb
+      savePdfWeb(pdfBytes, namaFile);
+    } else {
+      try {
+        // Simpan PDF ke perangkat
+        final directory = await getApplicationDocumentsDirectory();
+        final filePath = '${directory.path}/$namaFile';
+        final file = File(filePath);
+        await file.writeAsBytes(pdfBytes);
+        await Share.shareXFiles([XFile(file.path)], text: 'Struk Pembelian');
+      } catch (e) {
+        print('Error saat menyimpan atau berbagi PDF: $e');
+      }
+    }
+  }
+
+  void savePdfWeb(Uint8List pdfBytes, String fileName) {
+    final blob = html.Blob([pdfBytes]);
+    final url = html.Url.createObjectUrlFromBlob(blob);
+    final anchor = html.AnchorElement(href: url)
+      ..setAttribute("download", fileName)
+      ..click();
+    html.Url.revokeObjectUrl(url);
+  }
 
   void _showSnackBar(String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -227,18 +343,27 @@ void savePdfWeb(Uint8List pdfBytes, String fileName) {
 
     isLoading = false;
 
+    // Pajak 10% setelah diskon
+    double pajak = totalHarga * 0.10;
+    // Biaya layanan Rp 2.000
+    double biayaLayanan = 2000;
+    // Diskon untuk pelanggan member (contoh: 5%)
+    double diskon = pelangganId != null ? totalHarga * 0.05 : 0;
+    // Total akhir
+    double totalAkhir = totalHarga + pajak + biayaLayanan - diskon;
+
     showDialog(
       context: context,
       builder: (context) {
+        DateTime now = DateTime.now();
+    String tanggalTransaksi = "${now.toLocal().toString().split(' ')[0]} ${now.hour}:${now.minute.toString().padLeft(2, '0')}";
         return AlertDialog(
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
           title: Text(
             'Struk Pembelian',
-            style: GoogleFonts.poppins(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
+            style:
+                GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           content: isLoading
               ? const Center(child: CircularProgressIndicator())
@@ -246,6 +371,11 @@ void savePdfWeb(Uint8List pdfBytes, String fileName) {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                                            
+                      Text(
+                        'Tanggal: ${DateTime.now().toLocal().toString().split(' ')[0]}',
+                        style: GoogleFonts.poppins(fontSize: 14),
+                      ),
                       Text(
                         pelangganId != null
                             ? 'Pelanggan: ${pelangganData?['nama_pelanggan'] ?? "-"}'
@@ -282,8 +412,16 @@ void savePdfWeb(Uint8List pdfBytes, String fileName) {
                         }).toList(),
                       ),
                       const Divider(),
+                      Text('Subtotal: Rp $totalHarga',
+                          style: GoogleFonts.poppins()),
+                      Text('Diskon: Rp -$diskon', style: GoogleFonts.poppins()),
+                      Text('Pajak (10%): Rp $pajak',
+                          style: GoogleFonts.poppins()),
+                      Text('Biaya Layanan: Rp $biayaLayanan',
+                          style: GoogleFonts.poppins()),
+                      const SizedBox(height: 10),
                       Text(
-                        'Total Harga: Rp $totalHarga',
+                        'Total Harga: Rp $totalAkhir',
                         style: GoogleFonts.poppins(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -300,60 +438,10 @@ void savePdfWeb(Uint8List pdfBytes, String fileName) {
               child: Text('Tutup', style: GoogleFonts.poppins()),
             ),
             TextButton(
-  onPressed: () async {
-    await (_generatePDF);
-  },
-  child: Text("Ekspor PDF"),
-),
-
-            ElevatedButton(
               onPressed: () async {
-                try {
-                  final penjualanResponse = await supabase
-                      .from('penjualan')
-                      .insert({
-                        'tanggal_penjualan': DateTime.now().toIso8601String(),
-                        'total_harga': totalHarga,
-                        'pelanggan_id': pelangganId,
-                      })
-                      .select()
-                      .single();
-
-                  final penjualanId = penjualanResponse['penjualan_id'];
-
-                  for (var produk in produkTerpilih) {
-                    await supabase.from('detail_penjualan').insert({
-                      'penjualan_id': penjualanId,
-                      'produk_id': produk['produk_id'],
-                      'jumlah_produk': produk['jumlah_produk'],
-                      'subtotal': produk['subtotal'],
-                    });
-
-                    final int newStok =
-                        produk['stok'] - produk['jumlah_produk'];
-                    await supabase.from('produk').update({'stok': newStok}).eq(
-                        'produk_id', produk['produk_id']);
-                  }
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Pembelian berhasil disimpan.'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-
-                  onTransactionComplete();
-                  Navigator.pop(context);
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Gagal menyimpan pembelian: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
+                await _generatePDF(pelangganId, pelangganData);
               },
-              child: Text('Simpan', style: GoogleFonts.poppins()),
+              child: Text("Ekspor PDF"),
             ),
           ],
         );
@@ -487,7 +575,12 @@ void savePdfWeb(Uint8List pdfBytes, String fileName) {
             ),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: produkTerpilih.isEmpty ? null : _goToCheckout,
+              onPressed: produkTerpilih.isEmpty
+                  ? null
+                  : () {
+                      _saveTransaction(
+                          selectedPelangganId, produkTerpilih, totalHarga);
+                    },
               child: Text(
                 'Checkout',
                 style: GoogleFonts.poppins(),

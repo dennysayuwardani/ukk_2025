@@ -64,10 +64,10 @@ class _MainPageState extends State<MainPage> {
   int _currentIndex = 0;
 
   final List<Widget> _pages = [
-    const UserPage(),
+    const PenjualanPage(),
     const ProdukPage(),
     const PelangganPage(),
-    const PenjualanPage(),
+    const UserPage(),
     const RiwayatPage(),
   ];
 
@@ -91,7 +91,7 @@ class _MainPageState extends State<MainPage> {
 
   @override
   Widget build(BuildContext context) {
-    final titles = ['User', 'Produk', 'Pelanggan', 'Penjualan', 'Riwayat'];
+    final titles = ['Penjualan', 'Produk', 'Pelanggan', 'User', 'Riwayat'];
     
 return Scaffold(
       backgroundColor: const Color(0xFFFAF3E0), // Warna beige sebagai background
@@ -126,10 +126,11 @@ return Scaffold(
 
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.person_2_outlined),
-            label: 'User',
-            backgroundColor: Color(0xFF1A374D), // Biru Navy sebagai background
+            icon: Icon(Icons.point_of_sale),
+            label: 'Penjualan',
+            backgroundColor: Color(0xFF1A374D),
           ),
+          
           BottomNavigationBarItem(
             icon: Icon(Icons.coffee),
             label: 'Produk',
@@ -141,9 +142,9 @@ return Scaffold(
             backgroundColor: Color(0xFF1A374D),
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.point_of_sale),
-            label: 'Penjualan',
-            backgroundColor: Color(0xFF1A374D),
+            icon: Icon(Icons.person_2_outlined),
+            label: 'User',
+            backgroundColor: Color(0xFF1A374D), // Biru Navy sebagai background
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.history_outlined),
